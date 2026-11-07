@@ -1,0 +1,51 @@
+[versions]
+agp = "8.12.0"
+kotlin = "2.2.0"
+ksp = "2.2.0-2.0.2"
+composeBom = "2025.07.00"
+room = "2.7.2"
+activityCompose = "1.10.1"
+lifecycle = "2.9.2"
+navigation = "2.9.2"
+coreKtx = "1.16.0"
+pdfbox = "2.0.27.0"
+# PDFium binding with 16 KB page-size support (JitPack).
+# Fallback with the same API: com.github.barteksc:pdfium-android:1.9.0 (Maven Central)
+pdfium = "v1.11.4-16kb"
+junit = "4.13.2"
+# Telephoto Modifier.zoomable: stable pinch-to-zoom anchored at the focal point + 2D pan.
+telephoto = "0.19.0"
+# CameraX for Scan to PDF (latest stable per Google Maven metadata).
+camerax = "1.6.2"
+# ML Kit Document Scanner via Play Services (latest stable per Google Maven metadata).
+mlkitdoc = "16.0.0"
+
+[libraries]
+androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
+androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }
+androidx-lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycle" }
+androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycle" }
+androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigation" }
+androidx-compose-bom = { module = "androidx.compose:compose-bom", version.ref = "composeBom" }
+androidx-compose-ui = { module = "androidx.compose.ui:ui" }
+androidx-compose-ui-tooling = { module = "androidx.compose.ui:ui-tooling" }
+androidx-compose-material3 = { module = "androidx.compose.material3:material3" }
+androidx-compose-material-icons-extended = { module = "androidx.compose.material:material-icons-extended" }
+androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
+androidx-room-ktx = { module = "androidx.room:room-ktx", version.ref = "room" }
+androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
+pdfium-android = { module = "com.github.Akul-Tyagi:PdfiumAndroid", version.ref = "pdfium" }
+pdfbox-android = { module = "com.tom-roush:pdfbox-android", version.ref = "pdfbox" }
+telephoto-zoomable = { module = "me.saket.telephoto:zoomable", version.ref = "telephoto" }
+camera-core = { module = "androidx.camera:camera-core", version.ref = "camerax" }
+camera-camera2 = { module = "androidx.camera:camera-camera2", version.ref = "camerax" }
+camera-lifecycle = { module = "androidx.camera:camera-lifecycle", version.ref = "camerax" }
+camera-view = { module = "androidx.camera:camera-view", version.ref = "camerax" }
+mlkit-doc-scanner = { module = "com.google.android.gms:play-services-mlkit-document-scanner", version.ref = "mlkitdoc" }
+junit = { module = "junit:junit", version.ref = "junit" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
