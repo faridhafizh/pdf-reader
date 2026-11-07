@@ -1,108 +1,184 @@
 # PDF Reader
 
-Android PDF reader — buka PDF, baca dengan zoom fokus, cari teks, highlight/underline, scan dokumen lewat ML Kit, dan tempel tanda tangan yang bisa disimpan permanen ke PDF. Offline-first, tanpa analitik.
+An offline-first Android PDF reader built with Kotlin and Jetpack Compose. Read with focus-anchored zoom, search full documents, annotate, scan paper documents with ML Kit, and place signatures that are permanently embedded into the PDF file. No accounts, no analytics.
 
-- **Package:** `com.faridhafizh.pdfreader`
-- **minSdk 31 · target/compile SDK 36**
+![Platform](https://img.shields.io/badge/platform-Android-3DDC84?logo=android&logoColor=white)
+![Kotlin](https://img.shields.io/badge/Kotlin-Jetpack%20Compose-7F52FF?logo=kotlin&logoColor=white)
+![minSdk](https://img.shields.io/badge/minSdk-31-blue)
+![targetSdk](https://img.shields.io/badge/target%20%2F%20compile%20SDK-36-blue)
+![Version](https://img.shields.io/badge/version-0.1.0-lightgrey)
+![License](https://img.shields.io/badge/license-MIT-green)
 
-## Fitur
+<!-- Add screenshots here, e.g.:
+<p align="center">
+  <img src="docs/screenshots/library.png" width="24%" />
+  <img src="docs/screenshots/reader.png" width="24%" />
+  <img src="docs/screenshots/scan.png" width="24%" />
+  <img src="docs/screenshots/signature.png" width="24%" />
+</p>
+-->
 
-- **Library:** file picker (SAF) + *Open with* intent; thumbnail, progress baca, hapus. Posisi baca terakhir disimpan (debounced) dan dilanjutkan saat dibuka kembali.
-- **Reader:** scroll vertikal lazy, pinch zoom 1×–4× *anchored di titik fokus pinjam* + pan 2D (Telephoto) + double-tap toggle, lompat ke halaman, Page indicator.
-- **Search:** incremental full-document search, next/prev, highlight hasil.
-- **Text selection:** long-press lalu drag memilih teks, Copy.
-- **Highlights & underlines (4 warna):** tap anotasi untuk hapus, Save badge pending, auto-save saat keluar, Export copy ke lokasi pilihan.
-- **Scan to PDF (ML Kit Document Scanner):** auto-capture + edge detection + rotate + enhance/filter/clean bawaan Google Play Services; tanpa izin kamera di app; multi-page (maks 5) + gallery import; hasil langsung masuk library.
-- **Signatures (lokal):**
-  - Ekstraksi **crop manual** dari foto **atau gambar manual** di kanvas 220dp portrait; coretan dinormalisasi fraksi 0..1 (anti gepeng), stroke tipis default 2.5% + slider 1–6%.
-  - **Cleanup threshold kaku:** putih kertas → alpha 0 (100% transparan), tinta solid hitam + slider intensitas fallback.
-  - Library grid + hapus.
-  - **Placement editor di reader:** drag / resize / rotate, target *halaman ini / 6 berikutnya / semua halaman*.
-  - **Hybrid save:** overlay di aplikasi dari Room + tombol Save embed gambar sebagai XObject ke file PDF (temp → verify → atomic replace); export copy ikut ter-embed.
-- **Bookmarks:** toggle, list, lompat, hapus.
+**Package:** `com.faridhafizh.pdfreader`
 
-## Stack
+## Table of Contents
 
-| Area | Pilihan (stabil terverifikasi) |
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Architecture](#architecture)
+- [Getting Started](#getting-started)
+- [Technical Notes](#technical-notes)
+- [Permissions & Privacy](#permissions--privacy)
+- [Known Limitations](#known-limitations)
+- [License](#license)
+
+## Features
+
+### Library
+- Import PDFs via the system file picker (SAF) or the *Open with* intent
+- Thumbnails, reading progress, and delete
+- Last reading position is saved (debounced) and restored on reopen
+
+### Reader
+- Lazy vertical scrolling
+- Pinch zoom from 1× to 4×, anchored at the focal point, with 2D pan and double-tap to toggle zoom
+- Jump to page and page indicator
+- Bookmarks: toggle, list, jump, delete
+
+### Search & Selection
+- Incremental full-document search with next/previous navigation and highlighted matches
+- Long-press and drag to select text, then copy
+
+### Annotations
+- Highlight and underline in four colors
+- Tap an annotation to remove it
+- Pending-save badge, auto-save on exit, and *Export copy* to a location of your choice
+
+### Scan to PDF
+- Powered by the ML Kit Document Scanner: auto-capture, edge detection, rotation, and enhancement filters
+- Multi-page scans (up to 5 pages) and gallery import
+- Scanned PDFs are added to the library automatically
+- No in-app camera permission required
+
+### Signatures (local only)
+- **Create** a signature by manually cropping a photo, or by drawing on a 220 dp portrait canvas
+  - Strokes are normalized to 0..1 fractions to prevent distortion; default stroke width is 2.5% (adjustable 1–6%)
+- **Clean up** automatically: paper-white becomes fully transparent and ink becomes solid black, with an intensity slider as fallback
+- **Manage** signatures in a library grid
+- **Place** signatures in the reader: drag, resize, and rotate, applied to *this page*, *the next 6 pages*, or *all pages*
+- **Hybrid save:** signatures are shown instantly as an in-app overlay (from Room), and the Save button embeds them into the PDF as image XObjects (temp file → verify → atomic replace). Exported copies include the embedded signatures
+
+## Tech Stack
+
+| Area | Choice |
 |---|---|
 | UI | Jetpack Compose, Material 3 (dynamic color), Navigation Compose |
-| Arsitektur | MVVM, `StateFlow`, repository, **Manual DI** via `AppContainer` (no Hilt) |
-| Penyimpanan | Room (documents, bookmarks, annotations, signatures, signature_placements). PDF **dicopy ke app storage** (`filesDir/pdfs`) saat import |
-| Rendering | PDFium (`com.shockwave.pdfium.PdfiumCore`, fork JitPack 16KB) |
-| Teks/seleksi | PDFBox-Android (`PDFTextStripper` per-character) |
-| Tulis anotasi | PDFBox-Android (`PDAnnotationTextMarkup`: `/Highlight`, `/Underline`) |
-| Zoom | Zoomable Compose Telephoto `me.saket.telephoto:zoomable:0.19.0` |
-| Scan | **ML Kit Document Scanner via Play Services** `play-services-mlkit-document-scanner:16.0.0` (on-device, Play Services download sekali, lalu offline; butuh ≥1.7GB RAM). CameraX tetap sebagai dependency fallback/manual shutter lama. |
-| Build | Gradle Kotlin DSL (8.14.2 via wrapper), version catalog `gradle/libs.versions.toml`, KSP Room |
+| Architecture | MVVM, `StateFlow`, repository pattern, manual DI via `AppContainer` (no Hilt) |
+| Storage | Room (documents, bookmarks, annotations, signatures, signature placements); imported PDFs are copied to `filesDir/pdfs` |
+| Rendering | PDFium via `com.shockwave.pdfium.PdfiumCore` (JitPack fork with 16 KB page-size support) |
+| Text & selection | PDFBox-Android (`PDFTextStripper`, per-character positions) |
+| Annotation writing | PDFBox-Android (`PDAnnotationTextMarkup`: `/Highlight`, `/Underline`) |
+| Zoom | [Telephoto](https://github.com/saket/telephoto) `me.saket.telephoto:zoomable:0.19.0` |
+| Scanning | ML Kit Document Scanner via Play Services (`play-services-mlkit-document-scanner:16.0.0`); on-device, requires ≥ 1.7 GB RAM |
+| Build | Gradle Kotlin DSL (8.14.2 via wrapper), version catalog (`gradle/libs.versions.toml`), KSP for Room |
 
-## Struktur
+CameraX remains as a dependency for the legacy manual-shutter fallback.
+
+## Architecture
 
 ```
 app/src/main/java/com/faridhafizh/pdfreader/
-  PdfReaderApp.kt, AppContainer.kt, MainActivity.kt   entry, manual DI, navigasi
-  data/        Room entities/DAOs/database (v2), DocumentRepository
-  pdf/         PdfSession (PDFium), TextIndex (PDFBox), AnnotationWriter, SignatureWriter,
-                SignatureCleanup, ScanPdfBuilder, DocumentDetect, DocumentWarp, ThumbnailLoader
-  ui/library/  Library screen + ViewModel (+ menu Tambah: Add PDF / Scan / Signatures)
-  ui/reader/   Reader screen + ViewModel (pages, zoom, search, selection, annotations, signatures, bookmarks)
-  ui/scan/     Scan screen + ViewModel (ML Kit launcher)
-  ui/signatures/ Signatures screen + ViewModel (crop/draw/cleanup)
-  ui/theme/    Theme
+├── PdfReaderApp.kt, AppContainer.kt, MainActivity.kt   # entry point, manual DI, navigation
+├── data/          # Room entities/DAOs/database (v2), DocumentRepository
+├── pdf/           # PdfSession (PDFium), TextIndex (PDFBox), AnnotationWriter, SignatureWriter,
+│                  # SignatureCleanup, ScanPdfBuilder, DocumentDetect, DocumentWarp, ThumbnailLoader
+└── ui/
+    ├── library/     # Library screen + ViewModel (Add menu: Add PDF / Scan / Signatures)
+    ├── reader/      # Reader screen + ViewModel (pages, zoom, search, selection,
+    │                #   annotations, signatures, bookmarks)
+    ├── scan/        # Scan screen + ViewModel (ML Kit launcher)
+    ├── signatures/  # Signatures screen + ViewModel (crop / draw / cleanup)
+    └── theme/       # Theme
 ```
 
-## Keputusan desain penting
+### Key Design Decisions
 
-1. **Annotations & signature placements** memakai mesin status yang sama: `PENDING_ADD` (db saja), `SYNCED` (juga di PDF), `PENDING_DELETE`. Writer menulis ke file temp → verifikasi → *atomic move*. Anotasi menyimpan id di `/NM`; placements menanam XObject gambar (rotasi dibakar ke bitmap agar tampil konsisten di viewer lain) dan cover putih saat dihapus.
-2. **Overlay:** PDFium render konten saja (flag anotasi mati). Semua anotasi & tanda tangan digambar Compose dari data Room/Mathbox + Bitmap loader → tidak digambar dua kali. Keterbatasan: anotasi yang sudah ada di PDF import tidak tampil di overlay.
-3. **Koordinat:** semua rect/placement disimpan sebagai **fraksi 0..1 halaman display, origin kiri-atas**. `AnnotationWriter.toUser`/`SignatureWriter` konversi ke PDF user space (rotasi + crop box).
-4. **Satu sumber ukuran halaman:** PDFium `getPageSize` untuk layout aspect ratio; PDFBox `TextPosition` fraksinya ruang display yang sama.
-5. **Memory:** bitmap RGB_565 lebar ≤ 2400px, bucket 128px, (`LruCache(1/4 heap)`). Setiap render PDFium diserialkan mutex. Halaman ditutup & `PdfDocument` ditutup.
-6. **Import menyalin file** → tidak butuh izin SAF tulis. “Export copy…” salin file beranotasi ke tujuan pilihan.
-7. **Scan ML Kit** tidak butuh izin kamera; hasil PDF ditulis ulang oleh Play Services. Mode `FULL` (filters + clean), `pageLimit 5`, `galleryImport true`, format PDF+JPEG; pref Rusia: PDF langsung diimpor ke library.
+1. **Shared sync state machine.** Annotations and signature placements both use `PENDING_ADD` (database only) → `SYNCED` (also in the PDF) → `PENDING_DELETE`. Writers output to a temp file, verify it, then atomically move it into place. Annotations store their id in `/NM`; placements embed an image XObject (rotation is baked into the bitmap so it looks identical in other viewers) and draw a white cover when deleted.
+2. **Compose overlay.** PDFium renders page content only (annotation flag off). All annotations and signatures are drawn by Compose from Room data, so nothing is drawn twice.
+3. **Normalized coordinates.** Every rect and placement is stored as a 0..1 fraction of the displayed page with a top-left origin. `AnnotationWriter` and `SignatureWriter` convert to PDF user space, accounting for rotation and crop box.
+4. **Single source of page size.** PDFium `getPageSize` drives layout aspect ratio, and PDFBox `TextPosition` values are expressed in the same display space.
+5. **Memory management.** RGB_565 bitmaps with width ≤ 2400 px, 128 px size buckets, and an `LruCache` of 1/4 heap. PDFium renders are serialized with a mutex, and pages and `PdfDocument` instances are closed after use.
+6. **Copy on import.** Files are copied into app storage, so no SAF write permission is needed. *Export copy…* writes the annotated file to a user-chosen destination.
+7. **ML Kit scanning.** Mode `FULL` (filters + clean), `pageLimit 5`, gallery import enabled, PDF + JPEG output. The resulting PDF is imported into the library directly.
 
-## Build & jalankan
+## Getting Started
+
+### Prerequisites
+
+- JDK 17 (Temurin recommended)
+- Android SDK with API 36 platform
+- Android Studio (latest stable) or the Gradle wrapper
+
+### Build
 
 ```bash
-# JDK yang dipakai: Temurin 17 (JAVA_HOME). SDK: C:\Users\...\AppData\Local\Android\Sdk
-./gradlew assembleDebug                    # Windows: gradlew.bat assembleDebug
-./gradlew testDebugUnitTest                # belum ada test (input kosong)
+./gradlew assembleDebug          # Windows: gradlew.bat assembleDebug
+./gradlew testDebugUnitTest      # no unit tests yet
 ./gradlew lint
-# Android Studio: Sync gradle, Run app.
 ```
 
-**Pasang via USB debugging:**
+Or open the project in Android Studio, sync Gradle, and run the `app` configuration.
+
+### Install on a device via USB
+
+1. Enable **USB debugging** and accept the RSA prompt on the device the first time it connects.
+2. Install the debug build:
 
 ```powershell
 adb devices -l
 adb install -r app\build\outputs\apk\debug\app-debug.apk
 ```
 
-Pastikan USB debugging aktif dan HP mengetuk **Allow** pada dialog RSA saat pertama tersambung. Package terpasang sebagai `com.faridhafizh.pdfreader` v0.1.0.
+### Build files of interest
 
-**Build path penting:**
-- `app/build.gradle.kts` (namespace/applicationId baru), `gradle/libs.versions.toml` (versions terpin dari versi stabil terakhir per dependency; cek ulang sebelum bump).
-- Android Studio AGP Upgrade Assistant untuk bump AGP/Gradle bila perlu.
+- `app/build.gradle.kts`: namespace and `applicationId`
+- `gradle/libs.versions.toml`: pinned dependency versions (re-check for newer stable releases before bumping)
+- Use the Android Studio AGP Upgrade Assistant when updating AGP or Gradle
 
-## Detail teknikal (untuk dev)
+## Technical Notes
 
-- **Database Room v2:** tabel `signatures(id, fileName, widthPx, heightPx, createdAt)` + `signature_placements(id, documentId FK CASCADE, signatureId, page, centerX, centerY, widthFrac, rotationDeg, state, createdAt)`. Migrasi `MIGRATION_1_2` membuat kedua tabel + index. `exportSchema=false`.
-- **Repository:** `observeCombinedPending` gabungan anotasi+placements untuk badge Save. `importScannedPdf(images)` dan `importScannedPdfFromUris(uris)` (ML Kit fallback JPEG).
-- **Scan:** `ScanScreen` launcher `StartIntentSenderForResult`; options `SCANNER_MODE_FULL`, `pageLimit 5`, format PDF+JPEG. `ScanViewModel.importScannedUri/importScannedUris`.
-- **Detector lama (fallback):** `DocumentDetect` (adaptive threshold + Sobel edge-snap + EMA smooth + convex check) & `DocumentWarp` (homography murni) tetap disertakan untuk keperluan fallback/manual shutter; pipeline auto yang sekarang dikunci state machine sekali-jepret → editor tidak dipakai lagi bila ML Kit tersedia.
-- **TTD Cleanup (`SignatureCleanup.clean`):** luminance `(0.299R+0.587G+0.114B)`; ≥ threshold (default 235, slider 200–250) → alpha 0; di bawahnya alpha = `(threshold-lum)/(threshold+1)*255*boost` (boost 1–3, default 2.2), warna tinta dipaksa hitam. `trimTransparent(pad 6)` + `scaleDown(maxW 1200)`.
-- **Placement overlay (`SignaturePlacementView`):** posisi px dari fraksi × viewport, hit-test rotasi (`placementContains`), pan/zoom `EnabledZoomGestures` dimatikan saat seleksi/placement dipilih agar drag menggeser TTD (bukan halaman). Rotasi handle pakai heuristik horizontal saat endpoint auditor.
-- **Upload bitmap TTD:** `Save → PNG (100)` → `saveSignature(ByteArrayInputStream, w, h)`.
+**Database (Room v2).** Tables `signatures(id, fileName, widthPx, heightPx, createdAt)` and `signature_placements(id, documentId FK CASCADE, signatureId, page, centerX, centerY, widthFrac, rotationDeg, state, createdAt)`. `MIGRATION_1_2` creates both tables and their indexes. `exportSchema = false`.
 
-## Permission & privasi
+**Repository.** `observeCombinedPending` merges pending annotations and placements to drive the Save badge. `importScannedPdf(images)` and `importScannedPdfFromUris(uris)` handle scan results (the latter covers the ML Kit JPEG fallback).
 
-- `CAMERA` (warisan CameraX lama untuk fallback manual; ML Kit tidak membutuhkannya).
-- App **offline-first**: tanpa network, tanpa analitik. ML Kit model diunduh **sekali** via Play Services saat pertama scan (butuh internet sekali), lalu offline penuh.
-- Tanda tangan disimpan lokal (`filesDir/signatures`, PNG RGBA), tidak dibagikan ke server.
+**Scanning.** `ScanScreen` launches the scanner with `StartIntentSenderForResult` (`SCANNER_MODE_FULL`, `pageLimit 5`, PDF + JPEG). `ScanViewModel` exposes `importScannedUri` / `importScannedUris`.
 
-## Keterbatasan mapan
+**Legacy detector (fallback).** `DocumentDetect` (adaptive threshold, Sobel edge snapping, EMA smoothing, convexity check) and `DocumentWarp` (pure homography) remain for the manual-shutter fallback. When ML Kit is available, the older single-shot state-machine pipeline and editor are not used.
 
-- Halaman PDF putih di dark theme (tanpa inversi halaman).
-- Anotasi/TTD yang sudah ada di PDF import tidak tampil di overlay (hanya milik aplikasi).
-- PDF besar: PDFBox memuat seluruh file untuk teks (memori tinggi); zoom sangat tinggi render di resolusi ter-cap 2400px.
-- TTD yang sudah `SYNCED` lalu dihapus menyiapkan cover putih — bentuk XObject lama tidak benar-benar dihapus dari stream PDF.
-- ML Kit Document Scanner butuh Play Services + RAM ≥1.7GB; HP lama tanpa Play Services akan mendapat `UNSUPPORTED`.
+**Signature cleanup (`SignatureCleanup.clean`).**
+- Luminance is `0.299R + 0.587G + 0.114B`
+- Pixels at or above the threshold (default 235, slider range 200–250) become alpha 0
+- Below the threshold, alpha = `(threshold − lum) / (threshold + 1) × 255 × boost` (boost 1–3, default 2.2), with ink color forced to black
+- Followed by `trimTransparent(pad = 6)` and `scaleDown(maxW = 1200)`
+
+**Placement overlay (`SignaturePlacementView`).** Pixel positions are computed from fractions × viewport size, with rotation-aware hit testing (`placementContains`). Pan/zoom gestures are disabled while a selection or placement is active so dragging moves the signature rather than the page.
+
+**Saving a signature.** The bitmap is encoded to PNG (quality 100) and stored via `saveSignature(ByteArrayInputStream, w, h)`.
+
+## Permissions & Privacy
+
+- **Offline-first:** no network access and no analytics in the app itself.
+- **ML Kit model download:** the scanner model is downloaded once through Google Play Services on first scan (internet required once), then works fully offline.
+- **Local signature storage:** signatures are stored as RGBA PNGs in `filesDir/signatures` and are never uploaded.
+- **`CAMERA` permission:** declared only for the legacy CameraX manual-shutter fallback. The ML Kit scanner does not need it.
+
+## Known Limitations
+
+- PDF pages stay white in dark theme (no page inversion).
+- Annotations and signatures that already exist in an imported PDF are not shown in the overlay; only the app's own are.
+- Large PDFs: PDFBox loads the whole file for text extraction (high memory use), and very high zoom is capped at 2400 px render width.
+- Deleting a `SYNCED` signature adds a white cover; the original XObject is not removed from the PDF stream.
+- ML Kit Document Scanner needs Google Play Services and at least 1.7 GB RAM. Devices without Play Services return `UNSUPPORTED`.
+
+## License
+
+Released under the [MIT License](LICENSE).
